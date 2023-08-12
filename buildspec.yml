@@ -10,7 +10,7 @@ env:
   variables:
     AWS_DEFAULT_REGION: "eu-central-1" # my region
     AWS_ACCOUNT_ID    : "341615085388" # my account
-    ECR_REPO_NAME     : "demo_web"     # my app name , need to be equal(!) with repo name in ECR
+    ECR_REPO_NAME     : "demo_web"     # my app name , must be equal(!) with repo name in ECR
     ECR_IMAGE_TAG     : "latest"
 
 phases:
