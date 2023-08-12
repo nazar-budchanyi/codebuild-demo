@@ -1,0 +1,49 @@
+#--------------------------------------------------------------
+# copy from https://github.com/adv4000/codebuild-demo/blob/master/buildspec.yml
+# Simple AWS CodeBuild Config File
+# Copyleft (c) by Denis Astahov
+# comments by Nazar Budchanyi
+#--------------------------------------------------------------
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: "eu-central-1" # my region
+    AWS_ACCOUNT_ID    : "341615085388" # my account
+    ECR_REPO_NAME     : "demo-web"     # my app name
+    ECR_IMAGE_TAG     : "latest"
+
+phases:
+  
+  install: # recommended only for installing packages in the build environment. For example, a code testing framework. 
+           # (как проверить, куда оно поставится?) 
+    commands:
+      - echo "Check aws and git version" # to stop build if CLI or Git not installed
+      - aws --version
+      - git --version
+
+  pre_build: # preparation actions before build
+    commands:
+      - echo "Login to AWS ECR and get commit id"
+        # login to repo in region in account from variables
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION| docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+        # get last commit in short form for docker tag command below
+      - COMMIT_ID=$(git rev-parse --short HEAD)
+
+  build:
+    commands:
+      - echo Building the Docker image...
+        # build image demo_web:latest with Dockerfile from current folder:
+      - docker build -t $ECR_REPO_NAME:$ECR_IMAGE_TAG .
+        # make 1st image tag for demo_web:latest
+      - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
+        # make 2nd image tag for demo_web:commitID , just for process visualisation
+      - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
+
+  post_build: # what to do with image after build:
+    commands:
+      - echo Pushing the Docker image...
+        # push 1st image to ECR
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
+        # push 2nd image to ECR
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
